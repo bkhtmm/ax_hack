@@ -379,10 +379,6 @@ function PureMultimodalInput({
               selectedModelId={selectedModelId}
               status={status}
             />
-            <PromptSelector
-              onPromptTypeChange={onPromptTypeChange}
-              selectedPromptTypeId={selectedPromptTypeId}
-            />
           </PromptInputTools>
 
           {status === "submitted" ? (
