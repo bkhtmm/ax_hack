@@ -83,6 +83,14 @@ export async function retrieveRelevantTheorems(
  * Get RAG context to inject into system prompt
  */
 export async function getRagContext(userMessage: string): Promise<string> {
+  // Check if RAG server is configured and not localhost/disabled
+  const ragUrl = process.env.RAG_SERVER_URL || process.env.RAG_API_URL;
+
+  if (!ragUrl || ragUrl.includes('localhost') || ragUrl.includes('127.0.0.1')) {
+    console.log('[RAG] ⚠️  RAG server not configured or using localhost - skipping (safe for Vercel deployment)');
+    return '';
+  }
+
   // Check if this is a mathematics query
   if (!isMathematicsQuery(userMessage)) {
     console.log('[RAG] Not a math query, skipping RAG');

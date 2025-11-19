@@ -10,6 +10,19 @@ export async function processLeanInResponse(text: string): Promise<{
   hasLeanCode: boolean;
   needsCorrection: boolean;
 }> {
+  // Check if Lean verification is enabled
+  const isEnabled = process.env.ENABLE_LEAN_VERIFICATION === 'true';
+  const compilerUrl = process.env.LEAN_COMPILER_URL;
+
+  if (!isEnabled || !compilerUrl || compilerUrl.includes('localhost') || compilerUrl.includes('127.0.0.1') || compilerUrl.includes('ngrok')) {
+    console.log('[LEAN] ⚠️  Lean verification disabled or compiler not configured - skipping');
+    return {
+      originalText: text,
+      hasLeanCode: false,
+      needsCorrection: false
+    };
+  }
+
   // Verify any Lean code in the response
   const verification = await verifyLeanInMessage(text);
 

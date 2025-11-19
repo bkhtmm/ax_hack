@@ -5,6 +5,21 @@ export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if Lean compiler is configured and not localhost/ngrok
+    const compilerUrl = process.env.LEAN_COMPILER_URL;
+
+    if (!compilerUrl || compilerUrl.includes('localhost') || compilerUrl.includes('127.0.0.1') || compilerUrl.includes('ngrok')) {
+      console.log('[LEAN API] Lean compiler not configured or using localhost/ngrok - returning unavailable response');
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Lean verification service not available',
+          message: 'Lean compiler is not configured for this deployment. This feature requires an external Lean compiler service.'
+        },
+        { status: 503 }
+      );
+    }
+
     const { code } = await request.json();
 
     if (!code) {
@@ -13,8 +28,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    const ngrokUrl = process.env.LEAN_COMPILER_URL || "https://29124516e35e.ngrok-free.app";
 
     // Import https module for Node.js runtime
     const https = await import('https');
@@ -25,14 +38,14 @@ export async function POST(request: NextRequest) {
     // Create custom fetch with the agent
     const nodeFetch = (await import('node-fetch')).default;
 
-    // Step 1: Establish session with ngrok (bypass interstitial)
-    await nodeFetch(ngrokUrl, {
+    // Step 1: Establish session with compiler (bypass interstitial if needed)
+    await nodeFetch(compilerUrl, {
       method: 'GET',
       agent: agent as any
     });
 
     // Step 2: Compile the Lean code
-    const response = await nodeFetch(`${ngrokUrl}/compile-lean`, {
+    const response = await nodeFetch(`${compilerUrl}/compile-lean`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

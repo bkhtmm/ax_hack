@@ -40,9 +40,16 @@ export function extractLeanCode(text: string): string[] {
  */
 export async function compileLean(code: string): Promise<LeanCompileResult> {
   try {
-    // For Edge runtime, we need to use the ngrok URL directly
-    // since relative URLs don't work in Edge runtime
-    const ngrokUrl = process.env.LEAN_COMPILER_URL || "https://29124516e35e.ngrok-free.app";
+    // Check if Lean compiler is configured and not localhost/ngrok
+    const compilerUrl = process.env.LEAN_COMPILER_URL;
+
+    if (!compilerUrl || compilerUrl.includes('localhost') || compilerUrl.includes('127.0.0.1') || compilerUrl.includes('ngrok')) {
+      console.log('[LEAN] ⚠️  Lean compiler not configured or using localhost/ngrok - skipping (safe for Vercel deployment)');
+      return {
+        success: false,
+        error: 'Lean verification is disabled. Compiler not configured for this deployment.'
+      };
+    }
 
     // Import https for Node.js environments
     let fetchOptions: RequestInit = {
@@ -54,8 +61,8 @@ export async function compileLean(code: string): Promise<LeanCompileResult> {
       body: JSON.stringify({ code }),
     };
 
-    // Try to compile with ngrok directly
-    const response = await fetch(`${ngrokUrl}/compile-lean`, fetchOptions);
+    // Try to compile with the configured URL
+    const response = await fetch(`${compilerUrl}/compile-lean`, fetchOptions);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);

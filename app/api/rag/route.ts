@@ -4,6 +4,18 @@ const RAG_SERVER_URL = process.env.RAG_SERVER_URL || 'http://localhost:5001';
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if RAG server is configured and not localhost
+    if (!process.env.RAG_SERVER_URL || RAG_SERVER_URL.includes('localhost') || RAG_SERVER_URL.includes('127.0.0.1')) {
+      console.log('[RAG API] RAG server not configured or using localhost - returning unavailable response');
+      return NextResponse.json(
+        {
+          error: 'RAG service not available',
+          message: 'RAG server is not configured for this deployment. This feature requires an external RAG server.'
+        },
+        { status: 503 }
+      );
+    }
+
     const body = await request.json();
     const { query, k = 5 } = body;
 
@@ -41,6 +53,17 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
+    // Check if RAG server is configured
+    if (!process.env.RAG_SERVER_URL || RAG_SERVER_URL.includes('localhost') || RAG_SERVER_URL.includes('127.0.0.1')) {
+      return NextResponse.json(
+        {
+          status: 'disabled',
+          message: 'RAG server not configured for this deployment',
+        },
+        { status: 503 }
+      );
+    }
+
     // Health check - forward to RAG server
     const response = await fetch(`${RAG_SERVER_URL}/health`);
     const data = await response.json();
