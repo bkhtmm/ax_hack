@@ -186,7 +186,8 @@ export async function POST(request: Request) {
     await createStreamId({ streamId, chatId: id });
 
     // Retrieve RAG context for mathematics queries
-    const ragContext = await getRagContext(message.parts[0]?.text || '');
+    const firstTextPart = message.parts.find(part => part.type === 'text');
+    const ragContext = await getRagContext(firstTextPart && 'text' in firstTextPart ? firstTextPart.text : '');
     const enhancedSystemPrompt = promptType.systemPrompt + ragContext;
 
     if (ragContext) {
