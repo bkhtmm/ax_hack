@@ -51,8 +51,8 @@ import { createK2ThinkStreamParser } from "@/lib/ai/k2-think-stream-parser";
 // - Hobby: 300s max (5 minutes)
 // - Pro: 800s max (13.3 minutes)
 // - Enterprise: 800s max
-// Set to 800 for Pro plan maximum
-export const maxDuration = 800;
+// Set to 300 for Hobby plan maximum
+export const maxDuration = 300;
 
 let globalStreamContext: ResumableStreamContext | null = null;
 
