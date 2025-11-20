@@ -47,9 +47,12 @@ import { generateTitleFromUserMessage } from "../../actions";
 import { type PostRequestBody, postRequestBodySchema } from "./schema";
 import { createK2ThinkStreamParser } from "@/lib/ai/k2-think-stream-parser";
 
-// Vercel timeout: 10s (Hobby), 300s (Pro), 900s (Enterprise)
-// Set to 300 for Pro plan (5 minutes max)
-export const maxDuration = 300;
+// Vercel timeout limits (2025 with Fluid Compute enabled):
+// - Hobby: 300s max (5 minutes)
+// - Pro: 800s max (13.3 minutes)
+// - Enterprise: 800s max
+// Set to 800 for Pro plan maximum
+export const maxDuration = 800;
 
 let globalStreamContext: ResumableStreamContext | null = null;
 
