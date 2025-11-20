@@ -47,7 +47,9 @@ import { generateTitleFromUserMessage } from "../../actions";
 import { type PostRequestBody, postRequestBodySchema } from "./schema";
 import { createK2ThinkStreamParser } from "@/lib/ai/k2-think-stream-parser";
 
-export const maxDuration = 60;
+// Vercel timeout: 10s (Hobby), 300s (Pro), 900s (Enterprise)
+// Set to 300 for Pro plan (5 minutes max)
+export const maxDuration = 300;
 
 let globalStreamContext: ResumableStreamContext | null = null;
 
