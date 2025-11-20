@@ -25,7 +25,6 @@ import { MessageReasoning } from "./message-reasoning";
 import { PreviewAttachment } from "./preview-attachment";
 import { Weather } from "./weather";
 import { parseK2ThinkResponse, hasK2ThinkTags } from "@/lib/k2-think-parser";
-import { LeanVerification } from "./lean-verification";
 import { useArtifact } from "@/hooks/use-artifact";
 
 const PurePreviewMessage = ({
@@ -55,10 +54,6 @@ const PurePreviewMessage = ({
   );
 
   useDataStream();
-
-  // Extract Lean verification data from artifact metadata
-  const leanVerification = artifact?.metadata?.leanVerification;
-  const leanCorrectionPrompt = artifact?.metadata?.leanCorrectionPrompt;
 
   return (
     <motion.div
@@ -302,28 +297,6 @@ const PurePreviewMessage = ({
 
             return null;
           })}
-
-          {/* Display Lean verification results if available */}
-          {message.role === "assistant" && leanVerification && leanVerification.hasLeanCode && (
-            <LeanVerification
-              originalResults={leanVerification.verificationMessage}
-              allPassed={!leanVerification.needsCorrection}
-            />
-          )}
-
-          {/* Display Lean correction prompt if needed */}
-          {message.role === "assistant" && leanCorrectionPrompt && (
-            <div className="border-l-4 border-orange-400 bg-orange-50 dark:bg-orange-900/20 p-4 rounded">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-orange-600 dark:text-orange-400 font-semibold">
-                  Lean Verification Failed - Correction Needed
-                </span>
-              </div>
-              <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                {leanCorrectionPrompt}
-              </div>
-            </div>
-          )}
 
           {!isReadonly && (
             <MessageActions

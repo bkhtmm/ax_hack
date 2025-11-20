@@ -45,9 +45,6 @@ import type { AppUsage } from "@/lib/usage";
 import { convertToUIMessages, generateUUID } from "@/lib/utils";
 import { generateTitleFromUserMessage } from "../../actions";
 import { type PostRequestBody, postRequestBodySchema } from "./schema";
-import { processLeanInResponse, createCorrectionPrompt } from "@/lib/lean-middleware";
-import { parseK2ThinkResponse } from "@/lib/k2-think-parser";
-import { getRagContext } from "@/lib/rag-utils";
 
 export const maxDuration = 60;
 
@@ -185,23 +182,13 @@ export async function POST(request: Request) {
     const streamId = generateUUID();
     await createStreamId({ streamId, chatId: id });
 
-    // Retrieve RAG context for mathematics queries
-    const firstTextPart = message.parts.find(part => part.type === 'text');
-    const ragContext = await getRagContext(firstTextPart && 'text' in firstTextPart ? firstTextPart.text : '');
-    const enhancedSystemPrompt = promptType.systemPrompt + ragContext;
-
-    if (ragContext) {
-      console.log('[CHAT] ✅ RAG context added to system prompt');
-      console.log('[CHAT] Context length:', ragContext.length, 'characters');
-    }
-
     let finalMergedUsage: AppUsage | undefined;
 
     const stream = createUIMessageStream({
       execute: ({ writer: dataStream }) => {
         const result = streamText({
           model: myProvider.languageModel(selectedChatModel),
-          system: enhancedSystemPrompt,
+          system: promptType.systemPrompt,
           messages: convertToModelMessages(uiMessages),
           stopWhen: stepCountIs(5),
           // K2-Think doesn't support tools/functions, so we disable them
@@ -226,42 +213,9 @@ export async function POST(request: Request) {
             functionId: "stream-text",
           },
           onFinish: async ({ text, usage }) => {
+            // Lean verification disabled for Vercel deployment
+            // Code is preserved but commented out - re-enable when Lean compiler is externally hosted
             try {
-              // Process Lean verification if enabled
-              const enableLeanVerification = process.env.ENABLE_LEAN_VERIFICATION === 'true';
-
-              if (enableLeanVerification) {
-                // Parse K2-Think response to get the answer part
-                const parsed = parseK2ThinkResponse(text);
-                const answerContent = parsed.answer || text;
-
-                // Verify any Lean code in the response
-                const leanResult = await processLeanInResponse(answerContent);
-
-                if (leanResult.hasLeanCode) {
-                  // Send Lean verification results to the client
-                  dataStream.write({
-                    type: "lean-verification",
-                    data: {
-                      hasLeanCode: true,
-                      verificationMessage: leanResult.verificationMessage,
-                      needsCorrection: leanResult.needsCorrection,
-                    }
-                  });
-
-                  // If correction is needed, create a follow-up message
-                  if (leanResult.needsCorrection && leanResult.verificationMessage) {
-                    // Send correction prompt as a suggestion to the user
-                    dataStream.write({
-                      type: "lean-correction-prompt",
-                      data: {
-                        prompt: createCorrectionPrompt(leanResult.verificationMessage)
-                      }
-                    });
-                  }
-                }
-              }
-
               // Original usage tracking code
               const providers = await getTokenlensCatalog();
               const modelId =

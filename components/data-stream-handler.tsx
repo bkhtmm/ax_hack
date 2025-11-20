@@ -72,25 +72,27 @@ export function DataStreamHandler() {
               status: "idle",
             };
 
-          case "lean-verification":
-            // Store Lean verification data in artifact metadata
-            return {
-              ...draftArtifact,
-              metadata: {
-                ...draftArtifact.metadata,
-                leanVerification: delta.data,
-              },
-            };
+          // Lean verification disabled for Vercel deployment
+          // Code is preserved but commented out - re-enable when Lean compiler is externally hosted
+          // case "lean-verification":
+          //   // Store Lean verification data in artifact metadata
+          //   return {
+          //     ...draftArtifact,
+          //     metadata: {
+          //       ...draftArtifact.metadata,
+          //       leanVerification: delta.data,
+          //     },
+          //   };
 
-          case "lean-correction-prompt":
-            // Store correction prompt for display
-            return {
-              ...draftArtifact,
-              metadata: {
-                ...draftArtifact.metadata,
-                leanCorrectionPrompt: delta.data.prompt,
-              },
-            };
+          // case "lean-correction-prompt":
+          //   // Store correction prompt for display
+          //   return {
+          //     ...draftArtifact,
+          //     metadata: {
+          //       ...draftArtifact.metadata,
+          //       leanCorrectionPrompt: delta.data.prompt,
+          //     },
+          //   };
 
           default:
             return draftArtifact;
