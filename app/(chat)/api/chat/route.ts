@@ -45,6 +45,7 @@ import type { AppUsage } from "@/lib/usage";
 import { convertToUIMessages, generateUUID } from "@/lib/utils";
 import { generateTitleFromUserMessage } from "../../actions";
 import { type PostRequestBody, postRequestBodySchema } from "./schema";
+import { createK2ThinkStreamParser } from "@/lib/ai/k2-think-stream-parser";
 
 export const maxDuration = 60;
 
@@ -183,6 +184,30 @@ export async function POST(request: Request) {
     await createStreamId({ streamId, chatId: id });
 
     let finalMergedUsage: AppUsage | undefined;
+    let accumulatedText = '';
+    let lastSaveTime = Date.now();
+    let assistantMessageId = generateUUID();
+
+    // Save partial message periodically (every 5 seconds)
+    const savePartialMessage = async () => {
+      if (accumulatedText.length > 0) {
+        try {
+          await saveMessages({
+            messages: [{
+              id: assistantMessageId,
+              role: 'assistant',
+              parts: [{ type: 'text', text: accumulatedText }],
+              createdAt: new Date(),
+              attachments: [],
+              chatId: id,
+            }],
+          });
+          console.log('[CHAT] Partial message saved, length:', accumulatedText.length);
+        } catch (err) {
+          console.error('[CHAT] Failed to save partial message:', err);
+        }
+      }
+    };
 
     const stream = createUIMessageStream({
       execute: ({ writer: dataStream }) => {
@@ -212,7 +237,24 @@ export async function POST(request: Request) {
             isEnabled: isProductionEnvironment,
             functionId: "stream-text",
           },
+          onChunk: async ({ chunk }) => {
+            // Accumulate text for periodic saving
+            if (chunk.type === 'text-delta') {
+              accumulatedText += chunk.text;
+
+              // Check if we should save (every 5 seconds)
+              const now = Date.now();
+              if (now - lastSaveTime > 5000) {
+                lastSaveTime = now;
+                await savePartialMessage();
+              }
+            }
+          },
           onFinish: async ({ text, usage }) => {
+            // Save the complete accumulated text
+            accumulatedText = text;
+            await savePartialMessage();
+
             // Lean verification disabled for Vercel deployment
             // Code is preserved but commented out - re-enable when Lean compiler is externally hosted
             try {
@@ -259,16 +301,25 @@ export async function POST(request: Request) {
       },
       generateId: generateUUID,
       onFinish: async ({ messages }) => {
-        await saveMessages({
-          messages: messages.map((currentMessage) => ({
-            id: currentMessage.id,
-            role: currentMessage.role,
-            parts: currentMessage.parts,
-            createdAt: new Date(),
-            attachments: [],
-            chatId: id,
-          })),
+        // Filter out the assistant message as we've already saved it
+        const messagesToSave = messages.filter((msg) => {
+          // Only save non-assistant messages (user messages)
+          // Assistant message is already saved with assistantMessageId
+          return msg.role !== 'assistant';
         });
+
+        if (messagesToSave.length > 0) {
+          await saveMessages({
+            messages: messagesToSave.map((currentMessage) => ({
+              id: currentMessage.id,
+              role: currentMessage.role,
+              parts: currentMessage.parts,
+              createdAt: new Date(),
+              attachments: [],
+              chatId: id,
+            })),
+          });
+        }
 
         if (finalMergedUsage) {
           try {

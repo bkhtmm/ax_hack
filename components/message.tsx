@@ -125,31 +125,34 @@ const PurePreviewMessage = ({
 
             if (type === "text") {
               if (mode === "view") {
-                // Parse K2-Think tags for assistant messages
-                if (message.role === "assistant" && hasK2ThinkTags(part.text)) {
-                  const parsed = parseK2ThinkResponse(part.text);
+                // Parse K2-Think tags for assistant messages (both during streaming and after)
+                if (message.role === "assistant" && part.text) {
+                  // Check for K2-Think tags and parse them
+                  if (hasK2ThinkTags(part.text)) {
+                    const parsed = parseK2ThinkResponse(part.text);
 
-                  return (
-                    <div key={key} className="flex flex-col gap-2 md:gap-4">
-                      {parsed.hasThinking && (
-                        <MessageReasoning
-                          isLoading={isLoading}
-                          reasoning={parsed.thinking}
-                        />
-                      )}
-                      {parsed.answer && (
-                        <MessageContent
-                          className="bg-transparent px-0 py-0 text-left"
-                          data-testid="message-content"
-                        >
-                          <Response>{sanitizeText(parsed.answer)}</Response>
-                        </MessageContent>
-                      )}
-                    </div>
-                  );
+                    return (
+                      <div key={key} className="flex flex-col gap-2 md:gap-4">
+                        {parsed.hasThinking && (
+                          <MessageReasoning
+                            isLoading={isLoading}
+                            reasoning={parsed.thinking}
+                          />
+                        )}
+                        {parsed.answer && (
+                          <MessageContent
+                            className="bg-transparent px-0 py-0 text-left"
+                            data-testid="message-content"
+                          >
+                            <Response>{sanitizeText(parsed.answer)}</Response>
+                          </MessageContent>
+                        )}
+                      </div>
+                    );
+                  }
                 }
 
-                // Default rendering for non-K2-Think messages
+                // Default rendering for non-K2-Think messages or user messages
                 return (
                   <div key={key}>
                     <MessageContent
